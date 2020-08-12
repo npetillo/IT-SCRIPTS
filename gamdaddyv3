@@ -1,0 +1,407 @@
+#!/bin/bash
+#comment
+#office emails
+NY='newyork@seatgeek.com'
+PDX='portland@seatgeek.com'
+CHS='charleston@seatgeek.com'
+AMS='amsterdam@seatgeek.com'
+LON='uk@seatgeek.com'
+NCS='uk-sport@seatgeek.com'
+IL='israel@seatgeek.com'
+
+#department emails
+CX1='cxteam@seatgeek.com'
+CX2='support@seatgeek.com'
+MARKETING='marketing@seatgeek.com'
+DEV='d@seatgeek.com'
+HR='hr@seatgeek.com'
+PPL='people@seatgeek.com'
+OPS='ops@seatgeek.com'
+MOB='m@seatgeek.com'
+REC='recruiting@seatgeek.com'
+
+gam() {
+  "/Users/nick/bin/gam/gam" "$@"
+}
+
+#OneLogin Functions ####################################################################################################
+#grab_onelogin_userdata() {
+#  declare USER="$1"
+#  URL="https://api.us.onelogin.com/api/1/users?email"
+#  curl --request GET \
+#    --silent \
+#    --url "${URL}=${USER}" \
+#    --header 'Authorization: Bearer ' \
+#    --header 'Cache-Control: no-cache' \
+#    --header 'Postman-Token: e7423787-94c9-45a5-8bed-353637ae7369'
+#}
+
+#grab_onelogin_user_id() {
+#  declare USER="$1"
+#  grab_onelogin_userdata "$USER" | jq '.data[].id'
+#}
+
+#showuser(){
+#  declare USER="$1"
+##if [[ -z "$ONELOGIN_USER_ID" ]]; then
+##	echo "Could not find email in onelogin"
+##		return 0
+##fi
+#  curl -X GET \
+#    "https://api.us.onelogin.com/api/1/users/${ONELOGIN_USER_ID}" \
+#    -H 'Authorization: bearer:' \
+#    -H 'Cache-Control: no-cache' \
+#    -H 'Postman-Token: bf0f6abb-a607-4f8e-bc08-f648426550b0'
+#}#
+#
+
+#lock_user(){
+#  curl "https://api.us.onelogin.com/api/1/users/${ONELOGIN_USER_ID}/set_state" \
+#-X PUT \
+#-H "Authorization: bearer: " \
+#-H "Content-Type: application/json" \
+#-d '{ 
+#    "state":3 
+#}'
+
+
+#OneLogin Functions ####################################################################################################
+
+
+#slack_replace_user(){
+#echo "Enter email address for slack invite"
+#read email
+#sed -ie "s/[^@ ]*@[^@]*\.[^@ ]*/"\"$email\"",/g" $slack_inv_final
+#newman run $slack_inv_final
+#}
+
+
+
+#OnBoarding Functions ###################################################################################################
+addremoveloop(){
+  if  [[ $answer == 'y' ]]; then
+  addusergroup
+elif  [[ $answer == 'n' ]]; then
+  echo ok
+fi
+}
+
+
+slack_invite(){
+curl -X POST \
+  https://slack.com/api/users.admin.invite \
+  -H "Authorization: Bearer $SLACKTOKEN" \
+  -H 'Cache-Control: no-cache' \
+  -F email="$EMAIL"
+}
+
+
+addusergroup(){
+  echo "Enter the group"
+  read group
+  gam update group "$group" add user "$EMAIL"
+}
+
+othergroups(){
+echo "Would you like to add a user to another group? (y,n)"
+read answer
+if  [[ $answer == 'y' ]]; then
+  addusergroup
+elif  [[ $answer == 'n' ]]; then
+  echo ok
+fi
+}
+
+groupinitialinput(){
+echo "Would you like to add a user to another group? (y,n)"
+read answer 
+}
+
+
+cmd_echoemail(){
+	declare EMAIL="$1" FIRSTNAME="$2"
+	backupcodes=$(gam user "$EMAIL" update backupcodes)
+	printf "Hi $FIRSTNAME, I have setup an @seatgeek.com email for you, see below on how to get logged in\nGo to mail.seatgeek.com\nUsername: $EMAIL\nTemporary Password: welcome2seatgeek\nBackup Codes:\n$backupcodes\nYou must set up 2FA for your account on your first login or you will be locked out."
+}
+
+
+
+
+echoemail(){
+  printf "Hi $FIRSTNAME, I have setup an @seatgeek.com email for you, see below on how to get logged in\nGo to mail.seatgeek.com\nUsername: $EMAIL\nTemporary Password: welcome2seatgeek\nBackup Codes:\n$backupcodes\nYou must set up 2FA for your account on your first login or you will be locked out."
+}
+
+echogroups(){
+	gam info user "$EMAIL" | sed -ne '/Groups/,$ p'
+}
+
+
+cmd_create_user() {
+  declare EMAIL="$1" FIRSTNAME="$2" LASTNAME="$3"
+  #echo "EMAIL: ${EMAIL}"
+  #echo "FIRSTNAME: ${FIRSTNAME}"
+  #echo "LASTNAME: ${LASTNAME}"
+  gam create user "$EMAIL" firstname "$FIRSTNAME" lastname "$LASTNAME" password "welcome2seatgeek" changepassword on
+
+ #stores backup codes in variable
+backupcodes=$(gam user "$EMAIL" update backupcodes)
+
+#adds user to default group
+gam update group team@seatgeek.com add member "$EMAIL"
+
+echo "Where is this users home office? (ny,pdx,chs,lon,ams,ncs,il)"
+
+read office
+
+
+if  [[ $office == 'ny' ]]; then
+  gam update group "$NY" add member "$EMAIL"
+  gam update group a@seatgeek.com add member "$EMAIL"
+elif [[ $office == 'pdx' ]]; then
+  gam update group "$PDX" add member "$EMAIL"
+  gam update group a@seatgeek.com add member "$EMAIL"
+elif [[ $office == 'chs' ]]; then
+  gam update group "$CHS" add member "$EMAIL"
+  gam update group a@seatgeek.com add member "$EMAIL"
+ elif [[ $office == 'ams' ]]; then
+	gam update group "$AMS" add member "$EMAIL"
+elif [[ $office == 'lon' ]]; then
+	gam update group "$LON" add member "$EMAIL"
+elif [[ $office == 'ncs' ]]; then
+	gam update group "$NCS" add member "$EMAIL"
+elif [[ $office == 'il' ]]; then
+	gam update group "$IL" add member "$EMAIL"
+else
+groupinitialinput
+addremoveloop
+fi
+
+echo "What team is this person on (cx,marketing,hr,people,dev,ops,mobile,recruiting)"
+read deptanswer
+
+if [[ $deptanswer == 'cx' ]]; then
+	gam update group "$CX1" add member "$EMAIL"
+	gam update group "$CX2"	add member "$EMAIL" 
+elif [[ $deptanswer == marketing ]]; then
+	gam update group "$MARKETING" add member "$EMAIL"
+elif [[ $deptanswer == 'dev' ]]; then
+	gam update group "$DEV" add member "$EMAIL"
+elif [[ $deptanswer == 'hr' ]]; then
+	gam update group "$HR" add member "$EMAIL"
+	gam update group "$PPL" add member "$EMAIL"
+elif [[ $deptanswer == 'ops' ]]; then
+	gam update group "$OPS" add member "$EMAIL"
+	gam update group "$PPL" add member "$EMAIL"
+elif [[ $deptanswer == 'recruiting' ]]; then
+	gam update group "$REC" add member "$EMAIL"
+	gam update group "$PPL" add member "$EMAIL"
+elif [[ $deptanswer == 'mobile' ]]; then
+	gam update group "$MOB" add member "$EMAIL"
+else
+groupinitialinput
+addremoveloop
+fi
+
+
+echo "Is this user a people manager? (y,n)"
+read mgranswer
+
+if [[ $mgranswer == 'y' ]]; then
+  gam update group managers add member "$EMAIL"
+else
+  echo "OK"
+fi
+
+echo "Send a Slack Invite?"
+read slackanswer
+
+if [[ $slackanswer == 'y' ]]; then
+	slack_invite
+else
+	echo "OK"
+fi
+
+othergroups
+
+
+echoemail
+echogroups
+
+}
+
+cmd_delete_user(){
+	declare EMAIL="$1"
+	printf "Are you sure you want to delete the user $EMAIL? (y,n)"
+	read deleteanswer
+	if [[ $deleteanswer == y ]]; then
+		gam delete user "$EMAIL"
+	else
+		printf "OK"
+	fi
+}
+
+
+cmd_groupadd(){
+	declare EMAIL="$1" GROUP="$2"
+	gam update group "$GROUP" add member "$EMAIL"
+
+}
+
+cmd_groupcreate(){
+  declare EMAIL=$1 NAME="$2"
+  gam create group "$EMAIL" name "$NAME"
+
+}
+
+cmd_groupremove(){
+	declare EMAIL="$1" GROUP="$2"
+	gam update group "$GROUP" remove user "$EMAIL"
+}
+
+cmd_groupexport(){
+  declare GROUP=$1
+  gam print group-members group "$GROUP" membernames > ~/$GROUP.csv
+  echo "$GROUP" has been exported to your home folder
+}
+
+
+cmd_backupcodes(){
+	gam user "$EMAIL" update backupcodes
+}
+
+
+cmd_copyuser(){
+  declare OGEMAIL="$1" NEWEMAIL="$2"
+  array=$(gam info user "$OGEMAIL" | sed -ne '/Groups/,$ p' |cut -d "<" -f2 | cut -d ">" -f1 | grep -EiEio '\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b')
+
+  for i in ${array[@]}; do
+  gam update group "$i" add member "$NEWEMAIL"
+done
+}
+
+
+cmd_gitinvite(){
+declare GITUSER=$1
+
+curl -X PUT \
+  https://api.github.com/teams/1049865/memberships/"$GITUSER" \
+  -H 'Authorization: Bearer '"$GITTOKEN"'' \
+  -H 'Cache-Control: no-cache' \
+  ;
+}
+
+
+cmd_password(){
+	declare EMAIL="$1" 
+	gam update user "$EMAIL" password "welcome2seatgeek" changepassword on 
+}
+
+cmd_pass_backupcodes(){
+  declare EMAIL="$1"
+  gam update user "$EMAIL" password "welcome2seatgeek" 
+  gam user "$EMAIL" update backupcodes
+}
+#####################################################################################################################################################
+
+
+#OffBoarding Functions ##############################################################################################################################
+
+cmd_termuser(){
+declare EMAIL="$1"
+array=$(gam info user "$EMAIL" | sed -ne '/Groups/,$ p' |cut -d "<" -f2 | cut -d ">" -f1 | grep -EiEio '\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b')
+
+for i in ${array[@]}; do
+  gam update group "$i" remove user "$EMAIL"
+done
+
+gam update user "$EMAIL" password random
+gam user "$EMAIL" deprovision
+
+echo "Please login to admin.google.com and manually disable 2FA"
+}
+
+#####################################################################################################################################################
+
+#Bulk Operations ####################################################################################################################################
+
+cmd_bulk-group-add(){
+declare GROUP="$1"
+echo "Enter Users Emails"
+read -a userarray
+
+for i in ${userarray[@]}
+do 
+gam update group "$GROUP" add member "$i"
+done
+}
+
+cmd_bulk-group-remove(){
+  declare GROUP="$1"
+  echo "Enter Users Emails"
+  read -a userarray
+
+  for i in ${userarray[@]}
+  do 
+  gam update group "$GROUP" remove user "$i"
+ done
+}
+
+cmd_bulk-git-add-cx(){
+  echo "Enter GH Users"
+  read -a gharray
+
+  for i in ${gharray[@]}
+  do
+  curl -X PUT \
+  https://api.github.com/teams/2342064/memberships/"$i" \
+  -H 'Authorization: Bearer '"$GITTOKEN"'' \
+  -H 'Cache-Control: no-cache' \
+  ;
+done
+}
+
+
+
+cmd_help(){
+  printf "Available Commands:\ncreate-user <email> <firstname> <lastname>\ndelete-user <email>\npassword <email>\nbackupcodes <email>\nadd-group <email> <group>\nremove-group <email> <group>\npass-back <email> Changes password to default password and generates new backupcodes\ncreate-group <email> <group name> PUT GROUP NAME IN QUOTES\nexport-group <groupname>\ngit-invite <github username>\nterm-user <email>\nhelp Shows this"
+}
+
+main() {
+  declare CMD="$1" EMAIL="$2"
+# local ONELOGIN_USER_ID
+
+# ONELOGIN_USER_ID=$(grab_onelogin_user_id "$@")
+#  if [[ -z "$ONELOGIN_USER_ID" ]]; then
+#    echo "Could not find email in onelogin"
+#    return 0
+#  fi
+  export ONELOGIN_USER_ID
+  shift 1
+
+  [[ "$CMD" == "create-user" ]] && cmd_create_user "$@"
+  [[ "$CMD" == "delete-user" ]] && cmd_delete_user "$@"
+  [[ "$CMD" == "password"    ]] && cmd_password "$@"
+  [[ "$CMD" == "backupcodes" ]] && cmd_backupcodes "$@"
+  [[ "$CMD" == "add-group"   ]] &&  cmd_groupadd "$@"
+  [[ "$CMD" == "remove-group" ]] &&  cmd_groupremove "$@"
+  [[ "$CMD" == "create-group" ]] &&  cmd_groupcreate "$@"
+  [[ "$CMD" == "export-group" ]] &&  cmd_groupexport "$@"
+  [[ "$CMD" == "git-invite" ]] &&  cmd_gitinvite "$@"
+  [[ "$CMD" == "pass-back" ]] &&  cmd_pass_backupcodes "$@"
+  [[ "$CMD" == "term-user"  ]] && cmd_termuser "$@"
+  [[ "$CMD" == "help"       ]] && cmd_help "$@"
+  [[ "$CMD" == "bulk-group-add" ]] && cmd_bulk-group-add "$@"
+  [[ "$CMD" == "bulk-group-remove" ]] && cmd_bulk-group-remove "$@"
+  [[ "$CMD" == "bulk-github" ]] && cmd_bulk-git-add-cx "$@"
+  [[ "$CMD" == "copy-user" ]] && cmd_copyuser "$@"
+  [[ "$CMD" == "response" ]] && cmd_echoemail "$@"
+
+
+
+  
+
+#  [[ "$CMD" == "show-user"   ]] && showuser "$@"
+#  [[ "$CMD" == "lock-user"   ]] && lock_user "$@"
+}
+
+main "$@"

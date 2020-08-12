@@ -1,5 +1,3 @@
-# GAM SCRIPT
-
 GAM Master Script
 
 ## REQUIREMENTS

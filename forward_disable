@@ -1,0 +1,27 @@
+#!/bin/bash
+
+gam() {
+  "/Users/nick/bin/gam2/gam/gam" "$@"
+}
+
+
+
+cmd_forward_loop(){
+declare FILE="$1"
+while read a; do
+	gam user "$a" forward off
+done < "$FILE"
+}
+
+main() {
+declare CMD="$1" FILE="$2"
+shift 1
+
+  [[ "$CMD" == "fwd-disable" ]] && cmd_forward_loop "$@"
+}
+
+main "$@"
+
+
+
+

@@ -1,0 +1,1 @@
+for /F "tokens=*" %%A in (finance_dir_final.txt) do rclone.exe copy -P Z:/"%%A" remote:"%%A"

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+cmd_hostname_set(){
+#set -x
+
+
+#hostname=$(id -un)
+hostname=$(ls -l /dev/console | awk -F " " {'print $3'})
+model=$(system_profiler SPHardwareDataType | grep "Model Name" | awk -F " " {'print $3,$4'})
+
+#echo "$hostname" "$model"
+
+sudo scutil --set HostName "$hostname $model"
+sudo scutil --set LocalHostName "$hostname $model"
+sudo scutil --set ComputerName "$hostname $model"
+
+}
+
+cmd_hostname_set
+
+

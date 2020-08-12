@@ -1,0 +1,63 @@
+gam() {
+  "/Users/nick/bin/gam/gam" "$@"
+}
+
+ALLAGENCY=allagency@translationllc.com
+ALLTRANSLATION=alltranslationteam@translationllc.com
+
+
+
+curl -s https://sheetdb.io/api/v1/xjzx9xzer55t4 > create.json
+
+EMAIL=$(cat create.json | jq -r '.[] | [."New Hire Email Address (first.last@translationllc.com)" | tostring ]' | jq '.[]' | tr -d '"')
+
+echo $EMAIL
+FIRSTNAME=$(cat create.json | jq -r '.[] | [."Firstname" | tostring ]' | jq '.[]' | tr -d '"')
+
+
+LASTNAME=$(cat create.json | jq -r '.[] | [."Lastname" | tostring ]' | jq '.[]' | tr -d '"')
+
+echoemail(){
+  printf "Hi $FIRSTNAME, I have setup an @translationllc.com email for you, see below on how to get logged in\nGo to mail.google.com\nUsername: $EMAIL\nTemporary Password: Translation10jay\nYou will be prompted to change your password on first login" | pbcopy
+}
+
+echogroups(){
+	gam info user "$EMAIL" | sed -ne '/Groups/,$ p'
+}
+
+create_user(){
+gam create user "$EMAIL" firstname "$FIRSTNAME" lastname "$LASTNAME" password "Translation10jay" changepassword on
+#stores backup codes in variable
+##backupcodes=$(gam user "$EMAIL" update backupcodes)#
+
+##Standard Distro Additions
+gam update group "$ALLTRANSLATION" add member "$EMAIL"
+gam update group "$ALLAGENCY" add member "$EMAIL"
+
+if [[ "$EMAIL" == *unitedmasters* ]]
+then gam update group all.um.team@unitedmasters.com add member "$EMAIL"
+else echo "OK"
+fi
+
+if [[ "$EMAIL" == *unitedmasters* ]]
+then echo "Is this UM user in NY or SF"
+read -r location
+else echo "OK"
+fi
+if [[ "$location" == "NY" ]]; then
+  gam update group um.nyc@translationllc.com add member "$EMAIL"
+fi 
+if [[ "$location" == "SF" ]]; then 
+    gam update group sf@unitedmasters.com add member "$EMAIL"
+else echo "OK"
+fi
+
+
+}
+
+
+
+
+create_user
+echoemail
+echogroups
